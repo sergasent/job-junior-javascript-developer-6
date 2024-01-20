@@ -1,6 +1,12 @@
 import type { UsersCollectionType, UsersType } from './types'
 
 type SortOptions = Record<keyof UsersType, number>
+type Operators = {
+	$gte?: number;
+}
+type UsersTypeWithOperators = {
+	[T in keyof UsersType]?: UsersType[T] | Operators
+} & { $or?: Array<{[T in keyof UsersType]?: UsersType[T]}> }
 
 /**
  * This class helping to use regular javascript array same way as mongo collection
@@ -56,9 +62,34 @@ export class Collection {
 		return res
 	}
 
-	async find(query: any = {}, options: any = {}): Promise<any[]> {
-		const queryFields = Object.keys(query) as (keyof UsersType)[]
-		const filterFn = (entry: UsersType): boolean => queryFields.every((queryField: keyof UsersType): boolean => entry[queryField] === query[queryField])
+	checkWithQueryOperators(entry: UsersType, query: UsersTypeWithOperators, queryField: keyof UsersTypeWithOperators): boolean {
+		if (queryField === '$or') {
+			return query[queryField]?.some((item): boolean => {
+				const itemKey = Object.keys(item).at(0) as keyof UsersType
+				if (itemKey) {
+					return item[itemKey] === entry[itemKey] 
+				}
+				return false
+			}) || false
+		}
+		else {
+			const queryValue = query[queryField]
+			if (typeof queryValue !== 'string' && typeof queryValue !== 'number' && typeof queryValue !== 'undefined') {
+				let res = false
+				if ('$gte' in queryValue) {
+					res = this.compareFunc(entry[queryField], queryValue['$gte'] || -1) >= 0
+				}
+				return res
+			}
+			return entry[queryField] === query[queryField]
+		}
+	}
+
+	async find(query: UsersTypeWithOperators = {}, options: any = {}): Promise<any[]> {
+		const queryFields = Object.keys(query) as (keyof UsersTypeWithOperators)[]
+		const filterFn = (entry: UsersType): boolean => queryFields.every(
+			(queryField: keyof UsersTypeWithOperators): boolean => this.checkWithQueryOperators(entry, query, queryField)
+		)
 		return this.applyOptions(this.data.filter(filterFn), options)
 	}
 }
