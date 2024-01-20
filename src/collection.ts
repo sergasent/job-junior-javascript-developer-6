@@ -1,12 +1,19 @@
 import type { UsersCollectionType, UsersType } from './types'
 
 type SortOptions = Record<keyof UsersType, number>
+
 type Operators = {
 	$gte?: number;
 }
+
 type UsersTypeWithOperators = {
 	[T in keyof UsersType]?: UsersType[T] | Operators
 } & { $or?: Array<{[T in keyof UsersType]?: UsersType[T]}> }
+
+type Options = {
+	limit?: number;
+	sort?: {[T in keyof UsersType]?: number}
+}
 
 /**
  * This class helping to use regular javascript array same way as mongo collection
@@ -85,7 +92,7 @@ export class Collection {
 		}
 	}
 
-	async find(query: UsersTypeWithOperators = {}, options: any = {}): Promise<any[]> {
+	async find(query: UsersTypeWithOperators = {}, options: Options = {}): Promise<any[]> {
 		const queryFields = Object.keys(query) as (keyof UsersTypeWithOperators)[]
 		const filterFn = (entry: UsersType): boolean => queryFields.every(
 			(queryField: keyof UsersTypeWithOperators): boolean => this.checkWithQueryOperators(entry, query, queryField)
