@@ -9,9 +9,8 @@ export class Collection {
 	}
 
 	async find(query: any = {}, options: any = {}): Promise<any[]> {
-		const filterFn = (entry: any): boolean => {
-			return true
-		}
+		const queryFields = Object.keys(query)
+		const filterFn = (entry: any): boolean => queryFields.every((queryField: any): boolean => entry[queryField] === query[queryField])
 		return this.data.filter(filterFn)
 	}
 }
