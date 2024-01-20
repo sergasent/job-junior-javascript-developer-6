@@ -8,9 +8,18 @@ export class Collection {
 		this.data = data
 	}
 
+	getLimitedData(data: any[], count: number): any {
+		return data.slice(0, count)
+	}
+
 	async find(query: any = {}, options: any = {}): Promise<any[]> {
 		const queryFields = Object.keys(query)
 		const filterFn = (entry: any): boolean => queryFields.every((queryField: any): boolean => entry[queryField] === query[queryField])
-		return this.data.filter(filterFn)
+		const res = this.data.filter(filterFn)
+		if ('limit' in options) {
+			return this.getLimitedData(res, options['limit'])
+		}
+
+		return res
 	}
 }
